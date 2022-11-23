@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Datapedia;
 use Illuminate\Http\Request;
+use App\Http\Helper\ResponseHelper;
 
 class DatapediaController extends Controller
 {
