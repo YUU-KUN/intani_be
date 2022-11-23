@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FarmGroup;
 use Illuminate\Http\Request;
+use App\Http\Helper\ResponseHelper;
 
 class FarmGroupController extends Controller
 {
@@ -14,7 +15,8 @@ class FarmGroupController extends Controller
      */
     public function index()
     {
-        //
+        $farm_groups = FarmGroup::all();
+        return ResponseHelper::success('Success mendapatkan data semua grup tani', $farm_groups);
     }
 
     /**
