@@ -13,19 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('farmers', function (Blueprint $table) {
+        Schema::create('investments', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->string('commodity');
+            $table->integer('duration');
+            $table->string('address');
+            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
+            $table->uuid('farmer_id')->nullable();
             $table->uuid('farm_group_id')->nullable();
-            $table->string('name');
-            $table->string('phone');
-            $table->string('nik');
-            $table->string('address')->nullable();
-            $table->boolean('verified_ktp')->default(false);
             $table->timestamps();
-
-            // Add Foreign
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            
+            $table->foreign('farmer_id')->references('id')->on('farmers')->onDelete('cascade');
             $table->foreign('farm_group_id')->references('id')->on('farm_groups')->onDelete('cascade');
         });
     }
@@ -37,6 +35,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('farmers');
+        Schema::dropIfExists('investments');
     }
 };

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->uuid('user_id');
             $table->uuid('bank_id');
             $table->string('account_name');
-            $table->string('bank_number');
+            $table->string('account_number');
             $table->timestamps();
 
             // Add Foreign

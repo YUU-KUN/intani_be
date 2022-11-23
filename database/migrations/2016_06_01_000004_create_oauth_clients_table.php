@@ -13,18 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('investors', function (Blueprint $table) {
+        Schema::create('oauth_clients', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->string('name');
-            $table->string('phone');
-            $table->string('nik');
-            $table->string('address')->nullable();
-            $table->boolean('verified_ktp')->default(false);
+            $table->string('secret', 100)->nullable();
+            $table->string('provider')->nullable();
+            $table->text('redirect');
+            $table->boolean('personal_access_client');
+            $table->boolean('password_client');
+            $table->boolean('revoked');
             $table->timestamps();
-
-            // Add Foreign
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -35,6 +34,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('investors');
+        Schema::dropIfExists('oauth_clients');
     }
 };
