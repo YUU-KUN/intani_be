@@ -6,7 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens;
 use App\Traits\Uuids;
 
 class User extends Authenticatable
@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
     ];
 
     /**
@@ -43,4 +44,20 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function Investor()
+    {
+        return $this->hasOne(Investor::class);
+    }
+
+    public function Farmer()
+    {
+        return $this->hasOne(Farmer::class);
+    }
+
+
+    public function UserBank()
+    {
+        return $this->hasMany(UserBank::class);
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Investor;
 use Illuminate\Http\Request;
+use App\Http\Helper\ResponseHelper;
 
 class InvestorController extends Controller
 {
