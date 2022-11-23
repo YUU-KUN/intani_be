@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bank;
 use Illuminate\Http\Request;
+use App\Http\Helper\ResponseHelper;
 
 class BankController extends Controller
 {
@@ -14,7 +15,8 @@ class BankController extends Controller
      */
     public function index()
     {
-        //
+        $banks = Bank::all();
+        return ResponseHelper::success('Success mendapatkan data semua bank', $banks);
     }
 
     /**
