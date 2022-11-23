@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Http\Helper\ResponseHelper;
+
 use Auth;
 use Hash;
 use Validator;
-use App\Models\User;
-use App\Http\Requests\LoginRequest;
 use Storage;
+
+use App\Http\Requests\LoginRequest;
+use App\Models\User;
+use App\Models\Farmer;
+use App\Models\Investor;
+use App\Models\UserBank;
 
 class AuthController extends Controller
 {
@@ -23,60 +29,99 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('Intani App Token')->accessToken;
-        return response()->json([
-            'user' => $user,
-            'token' => $token
+        $user = $user->role == 'farmer' ? Farmer::where('user_id', $user->id)->with('User', 'User.UserBank')->first() : Investor::where('user_id', $user->id)->with('User', 'User.UserBank')->first();
+        return ResponseHelper::success('Berhasil login', [
+            'token' => $token, 
+            'user' => $user
         ]);
     }
 
-    public function registerFarmer(Request $request)
+    public function register(Request $request)
     {
+
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'address' => 'required|string|max:250',
-            'letter' => 'required|file|mimes:pdf|max:2048',
+            // user
             'email' => 'required|email|unique:users|max:250',
-            'password' => 'required|confirmed',
+            'password' => 'required',
+            'role' => 'required|in:farmer,investor',
+
+            // farmer
+            'name' => 'required|string|max:50',
+            'phone' => 'required|string|max:250',
+            'nik' => 'required|string|max:250',
+            'address' => 'nullable|string|max:250',
+            'ktp' => 'required|file|mimes:jpg,jpeg,png|max:2048',
+            'farm_group_id' => 'exists:farm_groups,id',
+            
+            // bank
+            'bank_id' => 'exists:banks,id',
+            'account_number' => 'required|string|max:250',
+            'account_name' => 'required|string|max:250',
         ]);
 
         $input = $request->all();
         if ($validator->fails()) {
             return response()->json(['error'=>$validator->errors()], 401);
+        } else {
+            $user_data['email'] = $input['email'];
+            $user_data['password'] = Hash::make($input['password']);
+            $user_data['role'] = $input['role'];
+            $user_data['is_active'] = true; //temporary
+    
+            $user = User::create($user_data);
+    
+            if ($user) {
+                $data['user_id'] = $user->id;
+                if ($user->role == 'farmer') {
+                    $data['farm_group_id'] = $input['farm_group_id'];
+                };
+                $data['name'] = $input['name'];
+                $data['phone'] = $input['phone'];
+                $data['nik'] = $input['nik'];
+                // $data['address'] = $input['address'];
+                $data['saldo'] = 50000000;
+                $data['verified_ktp'] = true; //temporary
+
+                $created_user = $user->role == 'farmer' ? Farmer::create($data) : Investor::create($data);
+                // $farmer = Farmer::create($farmer_data);
+    
+                if ($created_user) {
+                    $bank_data['user_id'] = $user->id;
+                    $bank_data['bank_id'] = $input['bank_id'];
+                    $bank_data['account_name'] = $input['account_name'];
+                    $bank_data['account_number'] = $input['account_number'];
+                    
+                    $created_user_bank = UserBank::create($bank_data);
+
+                    if ($created_user_bank) {
+                        return ResponseHelper::success("Berhasil membuat akun", $created_user->with('User', 'User.UserBank')->first());
+                        // return response()->json([
+                        //     'status' => 'success',
+                        //     'message' => 'Register Success',
+                        //     'user' => $data->with('User', 'User.UserBank')->first(),
+                        // ]);
+                    }
+                }
+            }
         }
         
-        $credentials['email'] = $input['email'];
-        $credentials['password'] = Hash::make($input['password']);
-        $credentials['role'] = 'company';
-        $user = User::create($credentials);
-        if ($user) {
-            // handle file upload
-            $company_letter = time().'.'.$request->letter->extension();
-            $company_letter_path = Storage::url('company/letter/');
-            $request->letter->move(public_path($company_letter_path), $company_letter);
-            
-            $input['letter'] = $company_letter;
-            $input['user_id'] = $user->id;
 
-            // Create Company
-            $company = Company::create($input);
+        // send otp
+        // $otp = rand(100000, 999999);
+        // $user->otp = $otp;
+        // $user->save();
 
-            if ($company) {
-                return response()->json([
-                    'success'=> true,
-                    'message' => 'Successfully created Company!',
-                    'data' => $company
-                ], 200);
-            } else {
-                return response()->json([
-                    'success'=> false,
-                    'message' => 'Failed to create Company!'
-                ], 500);
-            }
+        // // send otp to email
+        // $user->notify(new \App\Notifications\SendOtp($otp));
+        
+    }
+
+    public function profile(Request $request)
+    {
+        if (Auth::user()->role == 'farmer') {
+            return ResponseHelper::success('Berhasil mendapatkan data petani', Farmer::where('user_id', Auth::user()->id)->with('User', 'User.UserBank')->first());
         } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed registering User!',
-            ]);
+            return ResponseHelper::success('Berhasil mendapatkan data investor', Investor::where('user_id', Auth::user()->id)->with('User', 'User.UserBank')->first());
         }
     }
 
