@@ -44,11 +44,11 @@ class InvestmentController extends Controller
         // return Farmer::has('FarmGroup')->get();
         $input = $request->all();
         $input['status'] = 'pending';
-        $farmer_id = Auth::user()->id;
-        if (Farmer::has('FarmGroup')->where('user_id', $farmer_id)->exists()) {
-            $input['farm_group_id'] = Farmer::where('user_id', $farmer_id)->first()->farm_group_id;
+        $farmer = Auth::user();
+        if ($farmer->FarmGroup) {
+            $input['farm_group_id'] = $farmer->FarmGroup->id;
         } else {
-            $input['farmer_id'] = $farmer_id;
+            $input['farmer_id'] = $farmer->Farmer->id;
         }
         // return $input->with('FarmGroup');
         $investment = Investment::create($input);
@@ -118,11 +118,11 @@ class InvestmentController extends Controller
     public function PayInvestment(Request $request)
     {
         $input = $request->all();
-        $input['investor_id'] = Investor::where('user_id', Auth::user()->id)->first()->id;
-
-        $investor = Investor::where('user_id', Auth::user()->id)->first();
+        // $input['investor_id'] = Investor::where('user_id', Auth::user()->id)->first()->id;
+        
+        $investor = Auth::user()->Investor;
+        $input['investor_id'] = $investor->id;
         $admin_fee = $input['amount'] * 0.01;
-        return $admin_fee;
         if ($investor->saldo >= $input['amount']) {
             $investor->decrement('saldo', $input['amount']);
             $investor->save();
@@ -142,9 +142,20 @@ class InvestmentController extends Controller
         // return Auth::user()->load('Farmer', 'Farmer.FarmGroup');
         $investment = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'pending');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($q) {
+                    $q->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($q) {
+                    $q->where('id', Auth::user()->Farmer->id);
+                });
+            }
+            // $q->whereHas('FarmGroup', function($r) {
+            //     $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+            // })->orWhereHas('Farmer', function($s) {
+            //     $s->where('id', Auth::user()->Farmer->id);
+            // });
         })->with('Investment', 'Investor')->get();
         return ResponseHelper::success('Berhasil mendapatkan data semua investasi yang pending', $investment);
     }
@@ -154,9 +165,15 @@ class InvestmentController extends Controller
     {
         $investment = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'approved');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($r) {
+                    $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($s) {
+                    $s->where('id', Auth::user()->Farmer->id);
+                });
+            }
         })->with('Investment', 'Investor')->get();
         
         return ResponseHelper::success('Berhasil mendapatkan data semua investasi yang diterima', $investment);
@@ -166,9 +183,15 @@ class InvestmentController extends Controller
     {
         $investment = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'completed');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($r) {
+                    $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($s) {
+                    $s->where('id', Auth::user()->Farmer->id);
+                });
+            }
         })->with('Investment', 'Investor')->get();
         return ResponseHelper::success('Berhasil mendapatkan data semua investasi yang selesai', $investment);
     }
@@ -178,9 +201,15 @@ class InvestmentController extends Controller
         $investment = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'completed');
             $q->orWhere('status', 'rejected');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($r) {
+                    $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($s) {
+                    $s->where('id', Auth::user()->Farmer->id);
+                });
+            }
         })->with('Investment', 'Investor')->get();
         return ResponseHelper::success('Berhasil mendapatkan data semua investasi yang selesai', $investment);
     }
@@ -221,17 +250,24 @@ class InvestmentController extends Controller
     {
         $user = Auth::user();
         $investment_income = Investment::where('status', 'approved')->where(function($q) use ($user) {
-            $q->where('farm_group_id', $user->Farmer->FarmGroup->id)
-            ->orWhere('farmer_id', $user->Farmer->id);
+            if ($user->Farmer->FarmGroup) {
+                $q->where('farm_group_id', $user->Farmer->FarmGroup->id);
+            } else {
+                $q->where('farmer_id', $user->Farmer->id);
+            }
         })->first()->income ?? 0; // farmer input
 
         $profit_sharing = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'approved');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            })->orWhereHas('Farmer', function($r) {
-                $r->where('id', Auth::user()->Farmer->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($r) {
+                    $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($s) {
+                    $s->where('id', Auth::user()->Farmer->id);
+                });
+            }
         })->with('Investment', 'Investor')->get();
 
         $total_invest_received = $profit_sharing->sum('amount');
@@ -277,8 +313,11 @@ class InvestmentController extends Controller
     {
         $user = Auth::user();
         $investment = Investment::where('status', 'approved')->where(function($q) use ($user) {
-            $q->where('farm_group_id', $user->Farmer->FarmGroup->id)
-            ->orWhere('farmer_id', $user->Farmer->id);
+            if ($user->Farmer->FarmGroup) {
+                $q->where('farm_group_id', $user->Farmer->FarmGroup->id);
+            } else {
+                $q->where('farmer_id', $user->Farmer->id);
+            }
         })->first();
         $investment->income = $request->income;
         $investment->save();
@@ -291,11 +330,15 @@ class InvestmentController extends Controller
         $user = Auth::user();
         $investments = InvestorInvestment::whereHas('Investment', function($q) {
             $q->where('status', 'approved');
-            $q->whereHas('FarmGroup', function($r) {
-                $r->where('id', Auth::user()->Farmer->FarmGroup->id);
-            })->orWhereHas('Farmer', function($r) {
-                $r->where('id', Auth::user()->Farmer->id);
-            });
+            if (Auth::user()->Farmer->FarmGroup) {
+                $q->whereHas('FarmGroup', function($r) {
+                    $r->where('id', Auth::user()->Farmer->FarmGroup->id);
+                });
+            } else {
+                $q->whereHas('Farmer', function($s) {
+                    $s->where('id', Auth::user()->Farmer->id);
+                });
+            }
         })->with('Investor', 'Investment')->get();
 
         $investors = $investments->pluck('Investor')->unique('id');

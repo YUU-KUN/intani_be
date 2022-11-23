@@ -59,11 +59,6 @@ class BankSeeder extends Seeder
             ],
             [
                 'id' => Str::uuid(),
-                'bank_name' => 'Bank Rakyat Indonesia',
-                'bank_code' => 'BRI',
-            ],
-            [
-                'id' => Str::uuid(),
                 'bank_name' => 'Bank UOB',
                 'bank_code' => 'UOB',
             ],

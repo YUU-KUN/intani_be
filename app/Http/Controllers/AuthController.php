@@ -23,9 +23,10 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            // throw ValidationException::withMessages([
+            //     'email' => ['The provided credentials are incorrect.'],
+            // ]);
+            return ResponseHelper::error('Gagal masuk. Cek kembali email & password Anda', null);
         }
 
         $token = $user->createToken('Intani App Token')->accessToken;
@@ -51,7 +52,6 @@ class AuthController extends Controller
             'nik' => 'required|string|max:250',
             'address' => 'nullable|string|max:250',
             'ktp' => 'required|file|mimes:jpg,jpeg,png|max:2048',
-            'farm_group_id' => 'exists:farm_groups,id',
             
             // bank
             'bank_id' => 'exists:banks,id',
