@@ -51,7 +51,7 @@ class AuthController extends Controller
             'phone' => 'required|string|max:250',
             'nik' => 'required|string|max:250',
             'address' => 'nullable|string|max:250',
-            'ktp' => 'required|file|mimes:jpg,jpeg,png|max:2048',
+            'ktp' => 'required|file|mimes:jpg,jpeg,png',
             
             // bank
             'bank_id' => 'exists:banks,id',
